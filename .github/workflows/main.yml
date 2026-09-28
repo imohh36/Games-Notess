@@ -19,6 +19,10 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # إضافة الملف المفقود لتجنب الخطأ
+      - name: Create .env.example
+        run: touch .env.example
+
       - name: Generate Gradle Wrapper
         run: gradle wrapper
 
