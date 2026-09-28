@@ -1,0 +1,63 @@
+name: Build All Releases
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Create Safe Directory for Artifacts
+        run: mkdir -p release-artifacts
+
+      # --- 1. بناء النسخة المجانية (APK و AAB) ---
+      - name: Set Package Name to Free (gamesnotes)
+        run: sed -i 's/applicationId = ".*/applicationId = "com.spinel.gamesnotes"/g' app/build.gradle.kts
+
+      - name: Build Free APK
+        run: ./gradlew assembleRelease -PisPersonal=false
+
+      - name: Move Free APK to Safe Directory
+        run: mv app/build/outputs/apk/release/app-release.apk release-artifacts/GameNotes-Free.apk
+
+      - name: Build Free AAB
+        run: ./gradlew bundleRelease -PisPersonal=false
+
+      - name: Move Free AAB to Safe Directory
+        run: mv app/build/outputs/bundle/release/app-release.aab release-artifacts/GameNotes-Free.aab
+
+      # --- 2. تنظيف المشروع ---
+      - name: Clean Build Cache
+        run: ./gradlew clean
+
+      # --- 3. بناء النسخة الشخصية (APK فقط) ---
+      - name: Set Package Name to Pro (gamenotes)
+        run: sed -i 's/applicationId = ".*/applicationId = "com.spinel.gamenotes"/g' app/build.gradle.kts
+
+      - name: Build Pro APK
+        run: ./gradlew assembleRelease -PisPersonal=true
+
+      - name: Move Pro APK to Safe Directory
+        run: mv app/build/outputs/apk/release/app-release.apk release-artifacts/GameNotes-Pro.apk
+
+      # --- 4. رفع جميع الملفات النهائية ---
+      - name: Upload All Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameNotes_Final_Releases
+          path: release-artifacts/
